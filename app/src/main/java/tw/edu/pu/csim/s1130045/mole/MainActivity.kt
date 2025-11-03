@@ -14,26 +14,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState // 1. 匯入 collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable // 1. 匯入 rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel // 2. 匯入 viewModel 函式
 import tw.edu.pu.csim.s1130045.mole.ui.theme.MoleTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge() // 修正：這裡應該是 enableEdgeToEdge()
         setContent {
             MoleTheme {
-                // 使用 Scaffold 來處理邊界和系統 UI
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MoleScreen(modifier = Modifier.padding(innerPadding))
                 }
@@ -43,31 +40,36 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MoleScreen(modifier: Modifier = Modifier) {
-    // 2. 將 remember 改為 rememberSaveable
-    var counter by rememberSaveable { mutableLongStateOf(0) }
+fun MoleScreen(
+    modifier: Modifier = Modifier,
+    viewModel: MoleViewModel = viewModel() // 3. 取得 ViewModel 實例
+) {
+    // 4. 從 ViewModel 讀取 counter 狀態
+    // collectAsState 會將 StateFlow 轉換成 Compose 的 State
+    // 當 ViewModel 的 counter 改變時，UI 會自動重組
+    val counter by viewModel.counter.collectAsState()
 
-    // 使用一個 Box 作為根佈局
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // 1. 將 Text (分數) 放在 Box 中，並對齊到頂部中央
         Text(
             text = counter.toString(),
             modifier = Modifier
-                .align(Alignment.TopCenter) // 對齊到頂部中央
-                .padding(top = 32.dp),      // 留出一些邊距
-            fontSize = 48.sp                // 讓分數更顯眼
+                .align(Alignment.TopCenter)
+                .padding(top = 32.dp),
+            fontSize = 48.sp
         )
 
-        // 2. 將 Image (地鼠) 也放在 Box 中
         Image(
             painter = painterResource(id = R.drawable.mole),
             contentDescription = "地鼠",
             modifier = Modifier
-                .offset { IntOffset(50, 200) } // 從左上角偏移
+                .offset { IntOffset(50, 200) }
                 .size(150.dp)
-                .clickable { counter++ }
+                .clickable {
+                    // 5. 點擊時，呼叫 ViewModel 的函式，而不是直接修改 counter++
+                    viewModel.incrementCounter()
+                }
         )
     }
 }
